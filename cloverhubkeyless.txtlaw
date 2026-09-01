@@ -1,0 +1,247 @@
+-- Configuration
+local CORRECT_KEY = "CloverHubRyuunJsjsieowkwnkelekekdkdkdndndndkdk"
+local GET_KEY_LINK = "https://link4m.net/OExKy33j"
+local MAIN_SCRIPT_URL = "https://raw.githubusercontent.com/Ryuun0x/Clover/main/main.lua"
+local SAVE_FILE_NAME = "CloverKeyData.json"
+local KEY_DURATION = 86400 -- 24 hours (seconds)
+
+local HttpService = game:GetService("HttpService")
+local TweenService = game:GetService("TweenService")
+local CoreGui = game:GetService("CoreGui") or game.Players.LocalPlayer:WaitForChild("PlayerGui")
+
+---------------------------------------------------------
+-- LOGIC TẢI SCRIPT CHÍNH
+---------------------------------------------------------
+local function loadMainScript()
+    print("[CLOVER HUB] Key hợp lệ! Đang tải Script chính...")
+    task.spawn(function()
+        local success, err = pcall(function()
+            loadstring(game:HttpGet(MAIN_SCRIPT_URL))()
+        end)
+        if not success then
+            warn("[CLOVER HUB] Lỗi không thể tải Script chính: " .. tostring(err))
+        end
+    end)
+end
+
+---------------------------------------------------------
+-- LOGIC LƯU VÀ KIỂM TRA KEY (24 GIỜ)
+---------------------------------------------------------
+
+-- Hàm kiểm tra xem Key đã lưu còn dùng được không
+local function isKeySavedAndValid()
+    if readfile and isfile then
+        local success, isExist = pcall(function() return isfile(SAVE_FILE_NAME) end)
+        if success and isExist then
+            local readSuccess, content = pcall(function() return readfile(SAVE_FILE_NAME) end)
+            if readSuccess and content then
+                local decodeSuccess, data = pcall(function() return HttpService:JSONDecode(content) end)
+                if decodeSuccess and data and data.Key == CORRECT_KEY then
+                    local currentTime = os.time()
+                    local elapsedTime = currentTime - (data.Timestamp or 0)
+                    
+                    if elapsedTime < KEY_DURATION then
+                        return true -- Key còn hạn trong 24h
+                    end
+                end
+            end
+        end
+    end
+    return false
+end
+
+-- Hàm thực hiện lưu Key xuống máy
+local function saveKeyData(key)
+    if writefile then
+        local data = {
+            Key = key,
+            Timestamp = os.time()
+        }
+        local success, err = pcall(function()
+            writefile(SAVE_FILE_NAME, HttpService:JSONEncode(data))
+        end)
+        if success then
+            print("[CLOVER HUB] Đã lưu key thành công vào tập tin: " .. SAVE_FILE_NAME)
+        else
+            warn("[CLOVER HUB] Không thể lưu file (Executor bị chặn quyền writefile): " .. tostring(err))
+        end
+    else
+        warn("[CLOVER HUB] Executor của bạn không hỗ trợ hàm writefile!")
+    end
+end
+
+-- TỰ ĐỘNG BỎ QUA MENU NẾU KEY ĐÃ LƯU CÒN HẠN
+if isKeySavedAndValid() then
+    print("[CLOVER HUB] Phát hiện Key cũ hợp lệ (trong 24h)! Tự động vào Script...")
+    loadMainScript()
+    return
+end
+
+---------------------------------------------------------
+-- THIẾT KẾ GIAO DIỆN MENU
+---------------------------------------------------------
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "CloverShakeUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = CoreGui
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 380, 0, 240)
+MainFrame.Position = UDim2.new(0.5, -190, 0.5, -120)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
+MainFrame.BorderSizePixel = 0
+MainFrame.ClipsDescendants = true
+MainFrame.Parent = ScreenGui
+
+local MainCorner = Instance.new("UICorner", MainFrame)
+MainCorner.CornerRadius = UDim.new(0, 16)
+
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Color = Color3.fromRGB(0, 230, 118)
+MainStroke.Thickness = 1.5
+MainStroke.Transparency = 0.4
+MainStroke.Parent = MainFrame
+
+-- Header Title
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, -40, 0, 40)
+Title.Position = UDim2.new(0, 20, 0, 10)
+Title.BackgroundTransparency = 1
+Title.Text = "CLOVER HUB"
+Title.TextColor3 = Color3.fromRGB(0, 230, 118)
+Title.TextSize = 18
+Title.Font = Enum.Font.GothamBold
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = MainFrame
+
+local SubTitle = Instance.new("TextLabel")
+SubTitle.Size = UDim2.new(1, -40, 0, 20)
+SubTitle.Position = UDim2.new(0, 20, 0, 36)
+SubTitle.BackgroundTransparency = 1
+SubTitle.Text = "Please verify your access key to continue"
+SubTitle.TextColor3 = Color3.fromRGB(120, 120, 130)
+SubTitle.TextSize = 11
+SubTitle.Font = Enum.Font.Gotham
+SubTitle.TextXAlignment = Enum.TextXAlignment.Left
+SubTitle.Parent = MainFrame
+
+-- Key Input Box
+local KeyInput = Instance.new("TextBox")
+KeyInput.Size = UDim2.new(1, -40, 0, 42)
+KeyInput.Position = UDim2.new(0, 20, 0, 70)
+KeyInput.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
+KeyInput.PlaceholderText = "Paste key here..."
+KeyInput.PlaceholderColor3 = Color3.fromRGB(90, 90, 100)
+KeyInput.Text = ""
+KeyInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+KeyInput.Font = Enum.Font.Gotham
+KeyInput.TextSize = 12
+KeyInput.ClearTextOnFocus = false
+KeyInput.Parent = MainFrame
+
+local InputCorner = Instance.new("UICorner", KeyInput)
+InputCorner.CornerRadius = UDim.new(0, 8)
+
+local InputStroke = Instance.new("UIStroke")
+InputStroke.Color = Color3.fromRGB(38, 38, 48)
+InputStroke.Thickness = 1
+InputStroke.Parent = KeyInput
+
+-- Submit Button
+local SubmitBtn = Instance.new("TextButton")
+SubmitBtn.Size = UDim2.new(1, -40, 0, 40)
+SubmitBtn.Position = UDim2.new(0, 20, 0, 122)
+SubmitBtn.BackgroundColor3 = Color3.fromRGB(0, 230, 118)
+SubmitBtn.Text = "VERIFY KEY"
+SubmitBtn.TextColor3 = Color3.fromRGB(10, 12, 10)
+SubmitBtn.Font = Enum.Font.GothamBold
+SubmitBtn.TextSize = 12
+SubmitBtn.AutoButtonColor = false
+SubmitBtn.Parent = MainFrame
+
+local SubmitCorner = Instance.new("UICorner", SubmitBtn)
+SubmitCorner.CornerRadius = UDim.new(0, 8)
+
+-- Get Key Button
+local GetKeyBtn = Instance.new("TextButton")
+GetKeyBtn.Size = UDim2.new(1, -40, 0, 36)
+GetKeyBtn.Position = UDim2.new(0, 20, 0, 172)
+GetKeyBtn.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
+GetKeyBtn.Text = "GET KEY (COPY LINK)"
+GetKeyBtn.TextColor3 = Color3.fromRGB(0, 230, 118)
+GetKeyBtn.Font = Enum.Font.GothamMedium
+GetKeyBtn.TextSize = 11
+GetKeyBtn.AutoButtonColor = false
+GetKeyBtn.Parent = MainFrame
+
+local GetKeyCorner = Instance.new("UICorner", GetKeyBtn)
+GetKeyCorner.CornerRadius = UDim.new(0, 8)
+
+---------------------------------------------------------
+-- HIỆU ỨNG LẮC & XỬ LÝ SỰ KIỆN
+---------------------------------------------------------
+
+local function shakeMenu()
+    InputStroke.Color = Color3.fromRGB(255, 60, 60)
+    MainStroke.Color = Color3.fromRGB(255, 60, 60)
+    KeyInput.Text = ""
+    
+    local offsets = { -12, 12, -8, 8, -4, 4, 0 }
+    for _, offset in ipairs(offsets) do
+        local targetPos = UDim2.new(0.5, -190 + offset, 0.5, -120)
+        local tween = TweenService:Create(MainFrame, TweenInfo.new(0.04, Enum.EasingStyle.Linear), {Position = targetPos})
+        tween:Play()
+        tween.Completed:Wait()
+    end
+    
+    task.wait(0.5)
+    TweenService:Create(InputStroke, TweenInfo.new(0.3), {Color = Color3.fromRGB(38, 38, 48)}):Play()
+    TweenService:Create(MainStroke, TweenInfo.new(0.3), {Color = Color3.fromRGB(0, 230, 118)}):Play()
+end
+
+SubmitBtn.MouseButton1Click:Connect(function()
+    if KeyInput.Text == CORRECT_KEY then
+        -- Lưu file ngầm trong 24h
+        saveKeyData(KeyInput.Text)
+        
+        SubmitBtn.Text = "SUCCESS!"
+        SubmitBtn.BackgroundColor3 = Color3.fromRGB(0, 230, 118)
+        
+        -- Gọi tải script chính
+        loadMainScript()
+        
+        task.wait(0.8)
+        
+        local closeTween = TweenService:Create(MainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+            Size = UDim2.new(0, 0, 0, 0),
+            Position = UDim2.new(0.5, 0, 0.5, 0)
+        })
+        closeTween:Play()
+        closeTween.Completed:Wait()
+        ScreenGui:Destroy()
+    else
+        SubmitBtn.Text = "INVALID KEY!"
+        SubmitBtn.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+        SubmitBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        
+        task.spawn(shakeMenu)
+        
+        task.wait(1.2)
+        SubmitBtn.Text = "VERIFY KEY"
+        SubmitBtn.BackgroundColor3 = Color3.fromRGB(0, 230, 118)
+        SubmitBtn.TextColor3 = Color3.fromRGB(10, 12, 10)
+    end
+end)
+
+GetKeyBtn.MouseButton1Click:Connect(function()
+    if setclipboard then
+        setclipboard(GET_KEY_LINK)
+        GetKeyBtn.Text = "LINK COPIED TO CLIPBOARD!"
+        task.wait(1.5)
+        GetKeyBtn.Text = "GET KEY (COPY LINK)"
+    else
+        GetKeyBtn.Text = "UNABLE TO AUTO-COPY"
+    end
+end)
